@@ -8,6 +8,7 @@ import requests
 import random
 import urlparse
 import argparse
+import time
 from lxml import etree
 from gevent import Timeout
 from gevent.pool import Pool
@@ -19,6 +20,7 @@ from gevent import monkey
 import requests.packages.urllib3
 
 
+__author__ = 'longxiaowu'
 requests.packages.urllib3.disable_warnings()
 monkey.patch_all()
 
@@ -53,6 +55,7 @@ class Scanner(object):
         ]
         self.q = Queue()
         self.urls = set()
+        self.crawl_links = []
         self.result = []
         self.depth = depth
         self.threshold = 0.75
@@ -63,8 +66,10 @@ class Scanner(object):
         self.fuzz_pool = Pool(self.concurrent_num)
         self.filter_urls = set()
         self.flag = event.Event()
+        self.return_urls = set()
+        self.return_texts = set()
         self.fuzzflag = event.Event()
-        self.fuzz_queue = Queue()
+        self.fuzz_urls = []
         self.standers = {}
         self.black_suffixs = [
             ".jpg", '.png', '.gif', '.js', '.css',
@@ -118,23 +123,15 @@ class Scanner(object):
             pass
         return links
 
-    def crawl(self):
+    def crawl(self, link):
         try:
-            while not self.flag.isSet():
-                try:
-                    link = self.q.get_nowait()
-                except Empty:
-                    self.flag.set()
-                    continue
-                except:
-                    continue
-                r = self._requests(link, headers=self.headers)
-                if isinstance(r, bool):
-                    continue
-                current_url = r.url
-                text = r.text
-                links = self.parse_content(text, current_url)
-                self.cacheurls.update(links)
+            r = self._requests(link, headers=self.headers)
+            if isinstance(r, bool):
+                return
+            current_url = r.url
+            text = r.text
+            links = self.parse_content(text, current_url)
+            self.cacheurls.update(links)
         except:
             traceback.print_exc()
 
@@ -142,12 +139,11 @@ class Scanner(object):
         try:
             self.flag = event.Event()
             self.cacheurls = set()
-            for i in xrange(self.concurrent_num):
-                self.crawl_pool.apply(self.crawl,)
+            for link in self.crawl_links:
+                self.crawl_pool.spawn(self.crawl, link)
             self.crawl_pool.join()
             next_urls = self.cacheurls.difference(self.urls)
-            for url in next_urls:
-                self.q.put(url)
+            self.crawl_links = list(next_urls)
             self.urls.update(next_urls)
         except:
             traceback.print_exc()
@@ -163,6 +159,7 @@ class Scanner(object):
                         url, data=params['data'],
                         headers=params['headers'],
                         verify=params['verify'],
+                        stream=params['stream'],
                         allow_redirects=params['allow_redirects']
                     )
                     return r
@@ -192,64 +189,60 @@ class Scanner(object):
             return
         current_url = r.url
         text = r.text
-        links = self.parse_content(text, current_url)
-        self.urls.update(links)
-        for link in links:
-            self.q.put(link)
+        self.links = self.parse_content(text, current_url)
+        self.crawl_links = list(self.links)
+        self.urls.update(self.links)
         for _ in xrange(self.depth):
             self.start()
         print "*********************"
         print "crawl  finish"
         fuzz_dirs = self.get_dir(self.urls)
         if len(fuzz_dirs) != 1:
-            self.random_files.append(fuzz_dirs[-1])
+            self.random_files.append(fuzz_dirs[-1] + '/1.bak')
         self.standers = self.get_site_stander()
         self.join_file_dir(fuzz_dirs)
-        for _ in xrange(self.concurrent_num):
-            self.fuzz_pool.apply(self.worker,)
+        for url in self.fuzz_urls:
+            self.fuzz_pool.spawn(self.worker, url)
         self.fuzz_pool.join()
         print "************************"
         print "finish scan"
         print "************************"
         print self.result
 
-    def worker(self):
+    def worker(self, url):
         try:
-            while not self.fuzzflag.isSet():
-                try:
-                    url = self.fuzz_queue.get_nowait()
-                except Empty:
-                    self.fuzzflag.set()
-                    continue
-                except:
-                    continue
-                r = self._requests(
-                    url, headers=self.headers, allow_redirects=True
-                )
-                if isinstance(r, bool):
-                    continue
-                code = r.status_code
-                text = r.text
-                if not text:
-                    continue
-                if 'code' in self.standers:
-                    if code == self.standers['code']:
-                        self.result.append(url)
-                else:
-                    texts = self.standers['text']
+            r = self._requests(
+                url, headers=self.headers, allow_redirects=True
+            )
+            if isinstance(r, bool):
+                return
+            code = r.status_code
+            text = r.text
+            return_url = r.url
+            if return_url in self.return_urls or not text or text in self.return_texts:
+                return
+            if 'code' in self.standers:
+                if code == self.standers['code']:
+                    self.result.append(url)
+                    self.return_urls.add(return_url)
+                    self.return_texts.add(text)
+            else:
+                texts = self.standers['text']
 
-                    def calc_differece(t):
-                        from difflib import SequenceMatcher
-                        if SequenceMatcher(None, text, t).quick_ratio()\
-                                > self.threshold:
-                            return True
-                    flag = any(
-                        map(
-                            calc_differece, texts
-                        )
+                def calc_differece(t):
+                    from difflib import SequenceMatcher
+                    if SequenceMatcher(None, text, t).quick_ratio()\
+                            > self.threshold:
+                        return True
+                flag = any(
+                    map(
+                        calc_differece, texts
                     )
-                    if not flag:
-                        self.result.append(url)
+                )
+                if not flag:
+                    self.result.append(url)
+                    self.return_urls.add(return_url)
+                    self.return_texts.add(text)
         except:
             traceback.print_exc()
 
@@ -314,7 +307,7 @@ class Scanner(object):
                     url = urlparse.urljoin(
                         self.scheme + '://' + self.target_domain, path
                     )
-                    self.fuzz_queue.put(url)
+                    self.fuzz_urls.append(url)
         except:
             traceback.print_exc()
 
@@ -373,9 +366,13 @@ def _parse_params(kwargs):
     except:
         params['verify'] = False
     try:
+        params['verify'] = kwargs['verify']
+    except:
+        params['verify'] = True
+    try:
         params['allow_redirects'] = kwargs['allow_redirects']
     except:
-        params['allow_redirects'] = False
+        params['allow_redirects'] = True
     return params
 
 
@@ -384,7 +381,7 @@ if __name__ == "__main__":
     parse.add_argument("-u", "--url", dest="url")
     parse.add_argument("-e", "--extion", dest='extion', default="php")
     parse.add_argument("-d", "--depth", dest="depth", default=6, type=int)
-    parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
+    parse.add_argument("-t", "--threads", dest="threads", default=20, type=int)
     args = parse.parse_args()
     url = args.url
     extion = args.extion
@@ -394,4 +391,7 @@ if __name__ == "__main__":
         print "please input correct url"
         exit()
     hand = Scanner(url, extion, depth, threads)
+    st = time.time()
     hand.scan()
+    ft = time.time()
+    print "scan time :: " + str(ft-st)
