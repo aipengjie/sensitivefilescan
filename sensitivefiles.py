@@ -9,12 +9,10 @@ import random
 import urlparse
 import argparse
 import time
+import multiprocessing
 from lxml import etree
 from gevent import Timeout
 from gevent.pool import Pool
-from gevent.queue import Queue
-from gevent.queue import Empty
-from gevent import event
 from gevent.lock import Semaphore
 from gevent import monkey
 import requests.packages.urllib3
@@ -44,6 +42,7 @@ USER_AGENTS = [
 class Scanner(object):
     def __init__(self, url, extion, depth, nums):
         self.target = url
+        print url
         self.headers = {
             "User-Agent": random.choice(USER_AGENTS)
         }
@@ -53,22 +52,19 @@ class Scanner(object):
             "1111/2222/..git/config",
             "............................etc/passwd"
         ]
-        self.q = Queue()
         self.urls = set()
         self.crawl_links = []
         self.result = []
         self.depth = depth
-        self.threshold = 0.75
+        self.threshold = 0.9
         self.extion = extion
         self.sem = Semaphore()
         self.concurrent_num = nums
         self.crawl_pool = Pool(self.concurrent_num)
         self.fuzz_pool = Pool(self.concurrent_num)
         self.filter_urls = set()
-        self.flag = event.Event()
         self.return_urls = set()
         self.return_texts = set()
-        self.fuzzflag = event.Event()
         self.fuzz_urls = []
         self.standers = {}
         self.black_suffixs = [
@@ -137,7 +133,6 @@ class Scanner(object):
 
     def start(self):
         try:
-            self.flag = event.Event()
             self.cacheurls = set()
             for link in self.crawl_links:
                 self.crawl_pool.spawn(self.crawl, link)
@@ -204,10 +199,16 @@ class Scanner(object):
         for url in self.fuzz_urls:
             self.fuzz_pool.spawn(self.worker, url)
         self.fuzz_pool.join()
+        self.fuzz_pool.kill()
+        self.crawl_pool.kill()
         print "************************"
-        print "finish scan"
+        print "finish scan :: {}".format(self.target)
         print "************************"
-        print self.result
+        if self.result:
+            with open(self.target_domain + ".txt", 'w') as f:
+                for url in self.result:
+                    f.writelines(url + '\n')
+                f.close()
 
     def worker(self, url):
         try:
@@ -376,22 +377,54 @@ def _parse_params(kwargs):
     return params
 
 
+def get_target(file):
+    urls = []
+    try:
+        with open(file) as f:
+            targets = f.readlines()
+            for i in targets:
+                urls.append(i.strip("\n"))
+            f.close()
+    except:
+        traceback.print_exc()
+    return urls
+
+
+def fuzz(url, extion, depth, threads):
+    try:
+        print url
+        hand = Scanner(url, extion, depth, threads)
+        hand.scan()
+    except:
+        traceback.print_exc()
+
+
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("-u", "--url", dest="url")
     parse.add_argument("-e", "--extion", dest='extion', default="php")
     parse.add_argument("-d", "--depth", dest="depth", default=6, type=int)
     parse.add_argument("-t", "--threads", dest="threads", default=20, type=int)
+    parse.add_argument("-f", "--file", dest="file", type=str)
     args = parse.parse_args()
     url = args.url
     extion = args.extion
     depth = args.depth
     threads = args.threads
-    if not url or not url.startswith('http'):
+    file = args.file
+    if not url and not file:
         print "please input correct url"
         exit()
-    hand = Scanner(url, extion, depth, threads)
     st = time.time()
-    hand.scan()
+    if file:
+        urls = get_target(file)
+        if not urls:
+            print "{} has no urls".format(file)
+        else:
+            for url in urls:
+                hand = Scanner(url, extion, depth, threads)
+                hand.scan()
+    else:
+        fuzz(url, extion, depth, threads)
     ft = time.time()
     print "scan time :: " + str(ft-st)
