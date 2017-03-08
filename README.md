@@ -1,10 +1,10 @@
 #sensitivefilescan
 
-*工具会首先爬取网站链接，根据链接解析目录，然后枚举当前目录是否存在敏感文件，此外了还增加目录遍历检查和一些敏感server 路径检查
+工具会首先爬取网站链接，根据链接解析目录，然后枚举当前目录是否存在敏感文件，此外了还增加目录遍历检查和一些敏感server 路径检查
 
 ##安装环境
 ###首先安装python的第三份方包
-*pip install -r requirements.txt
+pip install -r requirements.txt
 
 ##用法
 
