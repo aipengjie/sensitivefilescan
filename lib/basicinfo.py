@@ -173,6 +173,3 @@ def _parse_params(kwargs):
     except:
         params['allow_redirects'] = True
     return params
-
-if __name__ == "__main__":
-    print os.path.abspath(os.path.join(path, "../dict/server/{}.txt"))

@@ -110,9 +110,3 @@ class crawl():
         finally:
             return self.urls
 
-
-if __name__ == "__main__":
-    hand = crawl("https://security.tencent.com")
-    urls = hand.scan()
-    print urls
-

@@ -97,7 +97,3 @@ class fuzz():
             traceback.print_exc()
         finally:
             return self.result
-
-
-if __name__ == "__main__":
-    hand = fuzz("http://www.baidu.com")
