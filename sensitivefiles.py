@@ -3,319 +3,96 @@
 
 
 import traceback
-import re
-import requests
-import random
 import urlparse
 import argparse
 import time
 import multiprocessing
-from lxml import etree
-from gevent import Timeout
-from gevent.pool import Pool
-from gevent.lock import Semaphore
-from gevent import monkey
-import requests.packages.urllib3
+from lib.crawl import crawl
+from lib.basicinfo import _requests
+from lib.basicinfo import headers
+from lib.crawl import black_suffixs
+from lib.exploit import exploit_backup_path
+from lib.exploit import exploit_common_file
+from lib.exploit import exploit_directory_path
+from lib.exploit import exploit_server_path
 
 
 __author__ = 'longxiaowu'
-requests.packages.urllib3.disable_warnings()
-monkey.patch_all()
-
-
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows; U; MSIE 9.0; Windows NT 9.0; en-US)",
-    "Mozilla/5.0 (X11; U; Linux; en-US) AppleWebKit/527+ (KHTML,"
-    " like Gecko, Safari/419.3) Arora/0.6",
-    "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.2p"
-    "re) Gecko/20070215 K-Ninja/2.1.1",
-    "Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9)"
-    " Gecko/20080705 Firefox/3.0 Kapiko/3.0",
-    "Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5",
-    "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.8) Gecko"
-    " Fedora/1.9.0.8-1.fc10 Kazehakase/0.5.6",
-    "Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; fr) Prest"
-    "o/2.9.168 Version/11.52",
-]
 
 
 class Scanner(object):
-    def __init__(self, url, extion, depth, nums):
+    def __init__(self, url, extion='php', depth=6, nums=30):
         self.target = url
-        print url
-        self.headers = {
-            "User-Agent": random.choice(USER_AGENTS)
-        }
         self.suffixs = ['.php', '.asp', '.jsp', '.do', '.action', '.aspx']
-        self.random_files = [
-            "........www.rar",
-            "1111/2222/..git/config",
-            "............................etc/passwd"
-        ]
         self.urls = set()
-        self.crawl_links = []
         self.result = []
         self.depth = depth
         self.threshold = 0.9
         self.extion = extion
-        self.sem = Semaphore()
         self.concurrent_num = nums
-        self.crawl_pool = Pool(self.concurrent_num)
-        self.fuzz_pool = Pool(self.concurrent_num)
-        self.filter_urls = set()
-        self.return_urls = set()
-        self.return_texts = set()
         self.fuzz_urls = []
         self.standers = {}
-        self.black_suffixs = [
-            ".jpg", '.png', '.gif', '.js', '.css',
-            '.avi', '.pdf', '.exe', '.doc', '.xls'
-        ]
-
-    def parse_content(self, content, current_url):
-        links = set()
-        try:
-            page = etree.HTML(content)
-            for t in ['a', 'area']:
-                a_tags = page.xpath(u'//{}'.format(t))
-                for a_tag in a_tags:
-                    link = a_tag.get('href')
-                    if len(links) > 20:
-                        continue
-                    if not link:
-                        continue
-                    if not link.startswith('http'):
-                        link = urlparse.urljoin(current_url, link)
-                    netloc = urlparse.urlparse(link).netloc
-                    if netloc != self.target_domain:
-                        continue
-                    flag = any(
-                        map(
-                            lambda x: link.split('?')[0].endswith(x),
-                            self.black_suffixs
-                        )
-                    )
-                    if flag:
-                        self.urls.add(link)
-                        continue
-                    rules = re.sub('=[^&$]+', '=*', link)
-                    if rules in self.filter_urls:
-                        continue
-                    links.add(link)
-                    self.filter_urls.add(rules)
-            for t in ['img', 'script']:
-                a_tags = page.xpath(u'//{}'.format(t))
-                for a_tag in a_tags:
-                    link = a_tag.get('src')
-                    if not link:
-                        continue
-                    if not link.startswith('http'):
-                        link = urlparse.urljoin(current_url, link)
-                    netloc = urlparse.urlparse(link).netloc
-                    if netloc != self.target_domain:
-                        continue
-                    self.urls.add(link)
-        except:
-            pass
-        return links
-
-    def crawl(self, link):
-        try:
-            r = self._requests(link, headers=self.headers)
-            if isinstance(r, bool):
-                return
-            current_url = r.url
-            text = r.text
-            links = self.parse_content(text, current_url)
-            self.cacheurls.update(links)
-        except:
-            traceback.print_exc()
-
-    def start(self):
-        try:
-            self.cacheurls = set()
-            for link in self.crawl_links:
-                self.crawl_pool.spawn(self.crawl, link)
-            self.crawl_pool.join()
-            next_urls = self.cacheurls.difference(self.urls)
-            self.crawl_links = list(next_urls)
-            self.urls.update(next_urls)
-        except:
-            traceback.print_exc()
-
-    def _requests(self, url, **kwargs):
-        url = url
-        print url
-        params = _parse_params(kwargs)
-        with Timeout(20, False) as timeout:
-            if params['data']:
-                try:
-                    r = requests.post(
-                        url, data=params['data'],
-                        headers=params['headers'],
-                        verify=params['verify'],
-                        stream=params['stream'],
-                        allow_redirects=params['allow_redirects']
-                    )
-                    return r
-                except:
-                    return False
-            else:
-                try:
-                    r = requests.get(
-                        url, data=params['data'],
-                        headers=params['headers'],
-                        verify=params['verify'],
-                        allow_redirects=params['allow_redirects']
-                    )
-                    return r
-                except:
-                    return False
-        return False
+        self.extion = "php"
 
     def scan(self):
-        self.target_domain = urlparse.urlparse(self.target).netloc
-        self.scheme = urlparse.urlparse(self.target).scheme
-        print "start crawl"
-        print "*********************"
-        r = self._requests(self.target, headers=self.headers)
-        if isinstance(r, bool):
-            print "invaild url please input correct url"
-            return
-        current_url = r.url
-        text = r.text
-        self.links = self.parse_content(text, current_url)
-        self.crawl_links = list(self.links)
-        self.urls.update(self.links)
-        for _ in xrange(self.depth):
-            self.start()
-        print "*********************"
-        print "crawl  finish"
-        fuzz_dirs = self.get_dir(self.urls)
-        if len(fuzz_dirs) != 1:
-            self.random_files.append(fuzz_dirs[-1] + '/1.bak')
-        self.standers = self.get_site_stander()
-        self.join_file_dir(fuzz_dirs)
-        for url in self.fuzz_urls:
-            self.fuzz_pool.spawn(self.worker, url)
-        self.fuzz_pool.join()
-        self.fuzz_pool.kill()
-        self.crawl_pool.kill()
-        print "************************"
-        print "finish scan :: {}".format(self.target)
-        print "************************"
-        if self.result:
-            with open(self.target_domain + ".txt", 'w') as f:
-                for url in self.result:
-                    f.writelines(url + '\n')
-                f.close()
-
-    def worker(self, url):
         try:
-            r = self._requests(
-                url, headers=self.headers, allow_redirects=True
-            )
+            r = _requests(self.target, headers=headers)
             if isinstance(r, bool):
+                print "invaild url please input correct url"
                 return
-            code = r.status_code
-            text = r.text
-            return_url = r.url
-            if return_url in self.return_urls or not text or text in self.return_texts:
-                return
-            if 'code' in self.standers:
-                if code == self.standers['code']:
-                    self.result.append(url)
-                    self.return_urls.add(return_url)
-                    self.return_texts.add(text)
-            else:
-                texts = self.standers['text']
-
-                def calc_differece(t):
-                    from difflib import SequenceMatcher
-                    if SequenceMatcher(None, text, t).quick_ratio()\
-                            > self.threshold:
-                        return True
-                flag = any(
-                    map(
-                        calc_differece, texts
-                    )
-                )
-                if not flag:
-                    self.result.append(url)
-                    self.return_urls.add(return_url)
-                    self.return_texts.add(text)
-        except:
-            traceback.print_exc()
-
-    def get_dicts(self, extion):
-        results = []
-        try:
-            with open("dict/{}.txt".format(extion), "r") as f:
-                values = f.readlines()
-                for value in values:
-                    results.append(value.strip('\n').strip())
-        except:
-            traceback.print_exc()
-        finally:
-            return results
-
-    def get_site_stander(self):
-        standers = {}
-        try:
-            infos = {}
-            for file in self.random_files:
-                url = urlparse.urljoin(self.target, file)
-                r = self._requests(
-                    url, timeout=10, headers=self.headers,
-                    allow_redircets=True
-                )
-                if isinstance(r, bool):
-                    continue
-                infos[url] = {
-                    'code': r.status_code,
-                    'text': r.text,
-                    'headers': r.headers,
-                    'url': r.url
-                }
-            flag = filter(
-                lambda x: infos[x]['code'] == 200, infos
-            )
-            if flag:
-                _ = set()
-                for i in infos:
-                    _.add(infos[i]['text'])
-                standers['text'] = list(_)
-            else:
-                standers['code'] = 200
-        except:
-            traceback.print_exc()
-        finally:
-            return standers
-
-    def join_file_dir(self, fuzz_dirs):
-        try:
-            fuzz_dirs = list(fuzz_dirs)
-            if len(fuzz_dirs) > 1:
-                common_dirs = []
-            else:
-                common_dirs = self.get_dicts(extion="common_dir")
-            common_files = self.get_dicts(extion=self.extion)
-            fuzz_dirs.extend(common_dirs)
-            dirs = list(set(fuzz_dirs))
-            for dir in dirs:
-                for file in common_files:
-                    path = dir + '/' + file
-                    url = urlparse.urljoin(
-                        self.scheme + '://' + self.target_domain, path
-                    )
-                    self.fuzz_urls.append(url)
+            self.target_domain = urlparse.urlparse(self.target).netloc
+            print "start crawl"
+            print "*********************"
+            hand = crawl(self.target, self.depth, self.concurrent_num)
+            crawl_urls = hand.scan()
+            print "*********************"
+            print "crawl  finish"
+            dirs = self.get_dir(crawl_urls)
+            print "*********************"
+            print "load server path "
+            server_result = exploit_server_path(self.target)
+            print "*********************"
+            print "load backup path"
+            backup_result = exploit_backup_path(self.target, dirs)
+            print "*********************"
+            print "load directory path"
+            directory_result = exploit_directory_path(self.target, dirs)
+            print "*********************"
+            print "load common file path"
+            common_file_result = exploit_common_file(self.target, self.extion, dirs)
+            print "************************"
+            print "finish scan :: {}".format(self.target)
+            print "************************"
+            if any([server_result, backup_result, directory_result, common_file_result]):
+                with open(self.target_domain + ".txt", 'w') as f:
+                    if server_result:
+                        f.writelines("************server path************\n")
+                        for url in self.result:
+                            f.writelines(url + '\n')
+                        f.writelines("************server path************\n\n\n")
+                    if backup_result:
+                        f.writelines("************backup path************\n")
+                        for url in self.result:
+                            f.writelines(url + '\n')
+                        f.writelines("************backup path************\n\n\n")
+                    if directory_result:
+                        f.writelines("************directory path************\n")
+                        for url in self.result:
+                            f.writelines(url + '\n')
+                        f.writelines("************directory path************\n\n\n")
+                    if common_file_result:
+                        f.writelines("************common file path************\n")
+                        for url in self.result:
+                            f.writelines(url + '\n')
+                        f.writelines("************common file path************\n\n\n")
+                    f.close()
         except:
             traceback.print_exc()
 
     def get_dir(self, urls):
         fuzz_dirs = set()
         fuzz_dirs.add('')
-        sxs = self.suffixs + self.black_suffixs
+        sxs = self.suffixs + black_suffixs
         try:
             for u in urls:
                 u = u.split('?')[0]
@@ -352,31 +129,6 @@ class Scanner(object):
             return list(fuzz_dirs)
 
 
-def _parse_params(kwargs):
-    params = {}
-    try:
-        params['data'] = kwargs['data']
-    except:
-        params['data'] = ''
-    try:
-        params['headers'] = kwargs['headers']
-    except:
-        params['headers'] = {}
-    try:
-        params['verify'] = kwargs['verify']
-    except:
-        params['verify'] = False
-    try:
-        params['verify'] = kwargs['verify']
-    except:
-        params['verify'] = True
-    try:
-        params['allow_redirects'] = kwargs['allow_redirects']
-    except:
-        params['allow_redirects'] = True
-    return params
-
-
 def get_target(file):
     urls = []
     try:
@@ -392,7 +144,6 @@ def get_target(file):
 
 def fuzz(url, extion, depth, threads):
     try:
-        print url
         hand = Scanner(url, extion, depth, threads)
         hand.scan()
     except:
