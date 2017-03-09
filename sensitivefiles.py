@@ -67,22 +67,22 @@ class Scanner(object):
                 with open(self.target_domain + ".txt", 'w') as f:
                     if server_result:
                         f.writelines("************server path************\n")
-                        for url in self.result:
+                        for url in server_result:
                             f.writelines(url + '\n')
                         f.writelines("************server path************\n\n\n")
                     if backup_result:
                         f.writelines("************backup path************\n")
-                        for url in self.result:
+                        for url in backup_result:
                             f.writelines(url + '\n')
                         f.writelines("************backup path************\n\n\n")
                     if directory_result:
                         f.writelines("************directory path************\n")
-                        for url in self.result:
+                        for url in directory_result:
                             f.writelines(url + '\n')
                         f.writelines("************directory path************\n\n\n")
                     if common_file_result:
                         f.writelines("************common file path************\n")
-                        for url in self.result:
+                        for url in common_file_result:
                             f.writelines(url + '\n')
                         f.writelines("************common file path************\n\n\n")
                     f.close()

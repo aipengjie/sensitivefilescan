@@ -15,7 +15,7 @@ black_suffixs = [
 
 
 class crawl():
-    def __init__(self, url, depth=6, nums=30):
+    def __init__(self, url, depth=4, nums=30):
         self.url = url
         self.urls = set()
         self.crawl_pool = Pool(nums)
@@ -30,7 +30,7 @@ class crawl():
                 a_tags = page.xpath(u'//{}'.format(t))
                 for a_tag in a_tags:
                     link = a_tag.get('href')
-                    if len(links) > 20:
+                    if len(links) > 5:
                         continue
                     if not link:
                         continue

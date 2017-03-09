@@ -68,7 +68,7 @@ def get_dict_by_server(head={}):
 
 
 def get_extion_by_sever(url):
-    extion = '.php'
+    extion = 'php'
     try:
         r = _requests(url)
         if isinstance(r, bool):
