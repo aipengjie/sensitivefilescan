@@ -15,13 +15,14 @@ from lib.exploit import exploit_backup_path
 from lib.exploit import exploit_common_file
 from lib.exploit import exploit_directory_path
 from lib.exploit import exploit_server_path
+from lib.exploit import get_extion_by_sever
 
 
 __author__ = 'longxiaowu'
 
 
 class Scanner(object):
-    def __init__(self, url, extion='php', depth=6, nums=30):
+    def __init__(self, url, extion='php', depth=4, nums=50):
         self.target = url
         self.suffixs = ['.php', '.asp', '.jsp', '.do', '.action', '.aspx']
         self.urls = set()
@@ -32,10 +33,21 @@ class Scanner(object):
         self.concurrent_num = nums
         self.fuzz_urls = []
         self.standers = {}
-        self.extion = "php"
+        self.extion = extion
+        self.parse_extion = ""
 
     def scan(self):
         try:
+            if not self.target.startswith("http"):
+                self.targets = [
+                    "http://" + self.target,
+                    "https://" + self.target
+                ]
+                for target in self.targets:
+                    r = _requests(target, headers=headers)
+                    if not isinstance(r, bool):
+                        self.target = target
+                        break
             r = _requests(self.target, headers=headers)
             if isinstance(r, bool):
                 print "invaild url please input correct url"
@@ -59,7 +71,14 @@ class Scanner(object):
             directory_result = exploit_directory_path(self.target, dirs)
             print "*********************"
             print "load common file path"
-            common_file_result = exploit_common_file(self.target, self.extion, dirs)
+            if self.parse_extion:
+                common_file_result = exploit_common_file(self.target, self.parse_extion, dirs)
+            else:
+                extion = get_extion_by_sever(self.target)
+                if extion:
+                    common_file_result = exploit_common_file(self.target, extion, dirs)
+                else:
+                    common_file_result = exploit_common_file(self.target, self.extion, dirs)
             print "************************"
             print "finish scan :: {}".format(self.target)
             print "************************"
@@ -89,6 +108,10 @@ class Scanner(object):
         except:
             traceback.print_exc()
 
+    """
+    @note: 解析爬虫的urls获取网站目录结构，获取网站语言extion
+    """
+
     def get_dir(self, urls):
         fuzz_dirs = set()
         fuzz_dirs.add('')
@@ -100,9 +123,9 @@ class Scanner(object):
                 def map_suffixs(x):
                     if u.endswith(x):
                         if x == '.action' or x == '.do' or x == '.jsp':
-                            self.extion = 'jsp'
+                            self.parse_extion = 'jsp'
                         elif x == '.php' or x == '.asp' or x == '.aspx':
-                            self.extion = x.strip('.')
+                            self.parse_extion = x.strip('.')
                         return True
                 flag = any(
                     map(
@@ -151,31 +174,33 @@ def fuzz(url, extion, depth, threads):
 
 
 if __name__ == "__main__":
-    parse = argparse.ArgumentParser()
-    parse.add_argument("-u", "--url", dest="url")
-    parse.add_argument("-e", "--extion", dest='extion', default="php")
-    parse.add_argument("-d", "--depth", dest="depth", default=6, type=int)
-    parse.add_argument("-t", "--threads", dest="threads", default=20, type=int)
-    parse.add_argument("-f", "--file", dest="file", type=str)
-    args = parse.parse_args()
-    url = args.url
-    extion = args.extion
-    depth = args.depth
-    threads = args.threads
-    file = args.file
-    if not url and not file:
-        print "please input correct url"
-        exit()
-    st = time.time()
-    if file:
-        urls = get_target(file)
-        if not urls:
-            print "{} has no urls".format(file)
-        else:
-            for url in urls:
-                hand = Scanner(url, extion, depth, threads)
-                hand.scan()
-    else:
-        fuzz(url, extion, depth, threads)
-    ft = time.time()
-    print "scan time :: " + str(ft-st)
+    # parse = argparse.ArgumentParser()
+    # parse.add_argument("-u", "--url", dest="url")
+    # parse.add_argument("-e", "--extion", dest='extion', default="php")
+    # parse.add_argument("-d", "--depth", dest="depth", default=4, type=int)
+    # parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
+    # parse.add_argument("-f", "--file", dest="file", type=str)
+    # args = parse.parse_args()
+    # url = args.url
+    # extion = args.extion
+    # depth = args.depth
+    # threads = args.threads
+    # file = args.file
+    # if not url and not file:
+    #     print "please input correct url"
+    #     exit()
+    # st = time.time()
+    # if file:
+    #     urls = get_target(file)
+    #     if not urls:
+    #         print "{} has no urls".format(file)
+    #     else:
+    #         for url in urls:
+    #             hand = Scanner(url, extion, depth, threads)
+    #             hand.scan()
+    # else:
+    #     fuzz(url, extion, depth, threads)
+    # ft = time.time()
+    # print "scan time :: " + str(ft-st)
+    hand = Scanner("http://183.131.231.229/guestbook/index.php", extion="php")
+    hand.scan()

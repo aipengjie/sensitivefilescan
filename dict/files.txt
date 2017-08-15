@@ -99,6 +99,9 @@ supervise/Login.{}
 administrator/login.{}
 adminLogin.html
 adminLogin.htm
+test.html
+test1.html
+test2.html
 login.html
 admin.html
 Admin.html

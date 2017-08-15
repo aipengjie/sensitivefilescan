@@ -35,7 +35,10 @@ class crawl():
                     if not link:
                         continue
                     if not link.startswith('http'):
-                        link = urlparse.urljoin(current_url, link)
+                        if "../" in link:
+                            link = urlparse.urljoin(current_url, link.strip('/'))
+                        else:
+                            link = urlparse.urljoin(current_url, link)
                     netloc = urlparse.urlparse(link).netloc
                     if netloc != self.target_domain:
                         continue

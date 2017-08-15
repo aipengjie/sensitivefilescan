@@ -4,6 +4,7 @@ httpd.conf
 local.conf
 app.config
 web.config
+config.config
 .htaccess
 example.htaccess
 sample.htaccess
@@ -41,6 +42,7 @@ database.mdb
 Database.mdf
 BookStore.mdf
 DB.mdf
+1.sql
 install.sql
 schema.sql
 mysql.sql
@@ -105,5 +107,4 @@ win.ini
 .subversion
 .svn
 .svn/entries
-.swf
 .web
