@@ -174,33 +174,31 @@ def fuzz(url, extion, depth, threads):
 
 
 if __name__ == "__main__":
-    # parse = argparse.ArgumentParser()
-    # parse.add_argument("-u", "--url", dest="url")
-    # parse.add_argument("-e", "--extion", dest='extion', default="php")
-    # parse.add_argument("-d", "--depth", dest="depth", default=4, type=int)
-    # parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
-    # parse.add_argument("-f", "--file", dest="file", type=str)
-    # args = parse.parse_args()
-    # url = args.url
-    # extion = args.extion
-    # depth = args.depth
-    # threads = args.threads
-    # file = args.file
-    # if not url and not file:
-    #     print "please input correct url"
-    #     exit()
-    # st = time.time()
-    # if file:
-    #     urls = get_target(file)
-    #     if not urls:
-    #         print "{} has no urls".format(file)
-    #     else:
-    #         for url in urls:
-    #             hand = Scanner(url, extion, depth, threads)
-    #             hand.scan()
-    # else:
-    #     fuzz(url, extion, depth, threads)
-    # ft = time.time()
-    # print "scan time :: " + str(ft-st)
-    hand = Scanner("http://183.131.231.229/guestbook/index.php", extion="php")
-    hand.scan()
+    parse = argparse.ArgumentParser()
+    parse.add_argument("-u", "--url", dest="url")
+    parse.add_argument("-e", "--extion", dest='extion', default="php")
+    parse.add_argument("-d", "--depth", dest="depth", default=4, type=int)
+    parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
+    parse.add_argument("-f", "--file", dest="file", type=str)
+    args = parse.parse_args()
+    url = args.url
+    extion = args.extion
+    depth = args.depth
+    threads = args.threads
+    file = args.file
+    if not url and not file:
+        print "please input correct url"
+        exit()
+    st = time.time()
+    if file:
+        urls = get_target(file)
+        if not urls:
+            print "{} has no urls".format(file)
+        else:
+            for url in urls:
+                hand = Scanner(url, extion, depth, threads)
+                hand.scan()
+    else:
+        fuzz(url, extion, depth, threads)
+    ft = time.time()
+    print "scan time :: " + str(ft-st)
