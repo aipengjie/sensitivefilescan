@@ -1,0 +1,6 @@
+http://3.qq.com
+http://ah.qq.com
+https://abc.qq.com/
+http://active.qq.com
+http://auto.qq.com
+http://zhan.qq.com/?ref=acts

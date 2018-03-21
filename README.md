@@ -8,10 +8,10 @@ pip install -r requirements.txt
 
 ##用法
 
-1. python sensitivefiles.py "http://www.baidu.com"
-2. python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
-3. python sensitivefiles.py -f example.txt
-4. -e 表示网站类型，-t 为爬虫的协程池默认为30， -d 则是爬虫的深度
+- python sensitivefiles.py "http://www.baidu.com"
+- python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
+- python sensitivefiles.py -f example.txt
+- -e 表示网站类型，-t 为爬虫的协程池默认为30， -d 则是爬虫的深度
 
 ##note
 

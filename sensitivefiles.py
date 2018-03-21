@@ -6,7 +6,7 @@ import traceback
 import urlparse
 import argparse
 import time
-import multiprocessing
+from multiprocessing import Pool
 from lib.crawl import crawl
 from lib.basicinfo import _requests
 from lib.basicinfo import headers
@@ -53,24 +53,18 @@ class Scanner(object):
                 print "invaild url please input correct url"
                 return
             self.target_domain = urlparse.urlparse(self.target).netloc
-            print "start crawl"
-            print "*********************"
+            print "*********************   start crawling  ***********************"
             hand = crawl(self.target, self.depth, self.concurrent_num)
             crawl_urls = hand.scan()
-            print "*********************"
-            print "crawl  finish"
             dirs = self.get_dir(crawl_urls)
-            print "*********************"
-            print "load server path "
+            print "********************* loading server path *********************"
             server_result = exploit_server_path(self.target)
-            print "*********************"
-            print "load backup path"
+            print "********************* loading backup path *********************"
             backup_result = exploit_backup_path(self.target, dirs)
-            print "*********************"
-            print "load directory path"
+            print "********************* load directory path *********************"
             directory_result = exploit_directory_path(self.target, dirs)
-            print "*********************"
-            print "load common file path"
+            print "********************* load common file path *******************"
+            dirs.append("")
             if self.parse_extion:
                 common_file_result = exploit_common_file(self.target, self.parse_extion, dirs)
             else:
@@ -85,25 +79,25 @@ class Scanner(object):
             if any([server_result, backup_result, directory_result, common_file_result]):
                 with open(self.target_domain + ".txt", 'w') as f:
                     if server_result:
-                        f.writelines("************server path************\n")
+                        f.writelines("****************** server path ******************\n")
                         for url in server_result:
                             f.writelines(url + '\n')
-                        f.writelines("************server path************\n\n\n")
+                        f.writelines("****************** server path ******************\n")
                     if backup_result:
-                        f.writelines("************backup path************\n")
+                        f.writelines("****************** backup path ******************\n")
                         for url in backup_result:
                             f.writelines(url + '\n')
-                        f.writelines("************backup path************\n\n\n")
+                        f.writelines("****************** backup path ******************\n")
                     if directory_result:
-                        f.writelines("************directory path************\n")
+                        f.writelines("**************** directory path *****************\n")
                         for url in directory_result:
                             f.writelines(url + '\n')
-                        f.writelines("************directory path************\n\n\n")
+                        f.writelines("**************** directory path *****************\n")
                     if common_file_result:
-                        f.writelines("************common file path************\n")
+                        f.writelines("*************** common file path ****************\n")
                         for url in common_file_result:
                             f.writelines(url + '\n')
-                        f.writelines("************common file path************\n\n\n")
+                        f.writelines("*************** common file path ****************\n")
                     f.close()
         except:
             traceback.print_exc()
@@ -114,7 +108,6 @@ class Scanner(object):
 
     def get_dir(self, urls):
         fuzz_dirs = set()
-        fuzz_dirs.add('')
         sxs = self.suffixs + black_suffixs
         try:
             for u in urls:
@@ -180,6 +173,7 @@ if __name__ == "__main__":
     parse.add_argument("-d", "--depth", dest="depth", default=4, type=int)
     parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
     parse.add_argument("-f", "--file", dest="file", type=str)
+    parse.add_argument("--log-json", dest="log_json", type=str)
     args = parse.parse_args()
     url = args.url
     extion = args.extion
@@ -196,8 +190,16 @@ if __name__ == "__main__":
             print "{} has no urls".format(file)
         else:
             for url in urls:
-                hand = Scanner(url, extion, depth, threads)
-                hand.scan()
+                fuzz(url, extion, depth, threads)
+            # try:
+            #     pool = Pool(4)
+            #     for url in urls:
+            #         print url
+            #         pool.apply_async(fuzz, args=(url, extion, depth, threads,))
+            #     pool.close()
+            #     pool.join()
+            # except:
+            #     traceback.print_exc()
     else:
         fuzz(url, extion, depth, threads)
     ft = time.time()
