@@ -11,6 +11,7 @@ pip install -r requirements.txt
 - python sensitivefiles.py "http://www.baidu.com"
 - python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
 - python sensitivefiles.py -f example.txt
+- python sensitivefiles.py --log-json test.json  test.json为whatweb --log-json的结果
 - -e 表示网站类型，-t 为爬虫的协程池默认为30， -d 则是爬虫的深度
 
 ## note
