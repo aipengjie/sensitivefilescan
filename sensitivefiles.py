@@ -6,6 +6,7 @@ import traceback
 import urlparse
 import argparse
 import time
+import json
 from multiprocessing import Pool
 from lib.crawl import crawl
 from lib.basicinfo import _requests
@@ -180,7 +181,8 @@ if __name__ == "__main__":
     depth = args.depth
     threads = args.threads
     file = args.file
-    if not url and not file:
+    log_json = args.log_json
+    if not url and not file and not log_json:
         print "please input correct url"
         exit()
     st = time.time()
@@ -200,6 +202,17 @@ if __name__ == "__main__":
             #     pool.join()
             # except:
             #     traceback.print_exc()
+    elif log_json:
+        with open(args.log_json) as f:
+            target_infos = json.loads(f.read())
+            for target_info in target_infos:
+                if target_info.has_key("http_status"):
+                    if 200 <= target_info["http_status"] < 300:
+                        fuzz(target_info["target"], extion, depth, threads)
+                    if 300 <= target_info["http_status"] < 400:
+                        if target_info["plugins"].has_key("RedirectLocation"):
+                            for url in target_info["plugins"]["RedirectLocation"]["string"]:
+                                fuzz(target_info["target"], extion, depth, threads)
     else:
         fuzz(url, extion, depth, threads)
     ft = time.time()

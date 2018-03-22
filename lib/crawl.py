@@ -86,7 +86,6 @@ class crawl():
 
     def crawl(self, link):
         try:
-            print "crawl url ===>" + link
             r = _requests(link, headers=headers)
             if isinstance(r, bool):
                 return

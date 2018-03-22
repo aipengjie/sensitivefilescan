@@ -19,7 +19,6 @@ class fuzz():
 
     def worker(self, url):
         try:
-            print "fuzz url ===>" + url
             r = _requests(
                 url, headers=headers, allow_redirects=True
             )
