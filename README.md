@@ -3,19 +3,19 @@
 ## introduce
 - this tools can be searched web leak files
 
-## install && enviroment
+## install && environment
 
 - python 2.7
 - pip install -r requirements.txt
 
 ## usage
 
-- scan single target 
-        python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
+- scan single target
+	python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
 - scan multiple target
-        python sensitivefiles.py -f example.txt
+	python sensitivefiles.py -f example.txt
 - scan whatweb --log-json result
-        python sensitivefiles.py --log-json test.json
+	python sensitivefiles.py --log-json test.json
 
 
 ## note
