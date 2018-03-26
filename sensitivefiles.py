@@ -51,20 +51,18 @@ class Scanner(object):
                         break
             r = _requests(self.target, headers=headers)
             if isinstance(r, bool):
-                print "invaild url please input correct url"
+                print "{} is invaild url".format(self.target)
                 return
+            print "target is {}".format(self.target)
             self.target_domain = urlparse.urlparse(self.target).netloc
             print "*********************   start crawling  ***********************"
             hand = crawl(self.target, self.depth, self.concurrent_num)
             crawl_urls = hand.scan()
             dirs = self.get_dir(crawl_urls)
-            print "********************* loading server path *********************"
+            print "*********************** start fuzzing *************************"
             server_result = exploit_server_path(self.target)
-            print "********************* loading backup path *********************"
             backup_result = exploit_backup_path(self.target, dirs)
-            print "********************* load directory path *********************"
             directory_result = exploit_directory_path(self.target, dirs)
-            print "********************* load common file path *******************"
             dirs.append("")
             if self.parse_extion:
                 common_file_result = exploit_common_file(self.target, self.parse_extion, dirs)
@@ -74,11 +72,8 @@ class Scanner(object):
                     common_file_result = exploit_common_file(self.target, extion, dirs)
                 else:
                     common_file_result = exploit_common_file(self.target, self.extion, dirs)
-            print "************************"
-            print "finish scan :: {}".format(self.target)
-            print "************************"
             if any([server_result, backup_result, directory_result, common_file_result]):
-                with open(self.target_domain + ".txt", 'w') as f:
+                with open("report/" + self.target_domain + ".txt", 'w') as f:
                     if server_result:
                         f.writelines("****************** server path ******************\n")
                         for url in server_result:
@@ -123,7 +118,7 @@ class Scanner(object):
                         return True
                 flag = any(
                     map(
-                        map_suffixs, sxs
+                        map_suffixs, sxs 
                     )
                 )
                 depth = True if flag else False
@@ -193,15 +188,6 @@ if __name__ == "__main__":
         else:
             for url in urls:
                 fuzz(url, extion, depth, threads)
-            # try:
-            #     pool = Pool(4)
-            #     for url in urls:
-            #         print url
-            #         pool.apply_async(fuzz, args=(url, extion, depth, threads,))
-            #     pool.close()
-            #     pool.join()
-            # except:
-            #     traceback.print_exc()
     elif log_json:
         with open(args.log_json) as f:
             target_infos = json.loads(f.read())

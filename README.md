@@ -1,19 +1,25 @@
-# sensitivefilescan
+# sensitivefilescan #
 
-- 工具会首先爬取网站链接，根据链接解析目录，然后枚举当前目录是否存在敏感文件，此外了还增加目录遍历检查和一些敏感server 路径检查
+## introduce
+- this tools can be searched web leak files
 
-## 安装环境
-### 首先安装python的第三份方包
-pip install -r requirements.txt
+## install && enviroment
 
-## 用法
+- python 2.7
+- pip install -r requirements.txt
 
-- python sensitivefiles.py "http://www.baidu.com"
-- python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
-- python sensitivefiles.py -f example.txt
-- python sensitivefiles.py --log-json test.json  test.json为whatweb --log-json的结果
-- -e 表示网站类型，-t 为爬虫的协程池默认为30， -d 则是爬虫的深度
+## usage
+
+- scan single target 
+        python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
+- scan multiple target
+        python sensitivefiles.py -f example.txt
+- scan whatweb --log-json result
+        python sensitivefiles.py --log-json test.json
+
 
 ## note
 
 - 这里的字典都是自己精挑细选出来的，大家有好的字典或者bug,可以提交issue或者merger代码
+
+

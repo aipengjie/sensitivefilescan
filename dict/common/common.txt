@@ -1,3 +1,4 @@
+core
 test.conf
 conf.conf
 httpd.conf
