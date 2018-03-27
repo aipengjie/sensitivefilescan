@@ -36,7 +36,6 @@ USER_AGENTS = [
 ]
 headers = {
     "User-Agent": random.choice(USER_AGENTS),
-    "Cookie": "a9c2b5ed00a100a6f3e27ab3328d8106"
 }
 extion = "php"
 path = os.path.realpath(os.path.dirname(__file__))
