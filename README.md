@@ -10,12 +10,9 @@
 
 ## usage ##
 
-**1. scan single target **
-	python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
-**2. scan multiple target **
-	python sensitivefiles.py -f example.txt
-**3. scan whatweb --log-json result **
-	python sensitivefiles.py --log-json test.json
+- python sensitivefiles.py "http://www.baidu.com" -e 'php' -t 40 -d 10
+- python sensitivefiles.py -f example.txt
+- python sensitivefiles.py --log-json test.json
 
 ## note ##
 

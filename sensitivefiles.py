@@ -164,12 +164,12 @@ def fuzz(url, extion, depth, threads):
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
-    parse.add_argument("-u", "--url", dest="url")
-    parse.add_argument("-e", "--extion", dest='extion', default="php")
-    parse.add_argument("-d", "--depth", dest="depth", default=4, type=int)
-    parse.add_argument("-t", "--threads", dest="threads", default=50, type=int)
-    parse.add_argument("-f", "--file", dest="file", type=str)
-    parse.add_argument("--log-json", dest="log_json", type=str)
+    parse.add_argument("-u", "--url", dest="url", help="the target to be scanned")
+    parse.add_argument("-e", "--extion", dest='extion', default="php", help="the extion of target")
+    parse.add_argument("-d", "--depth", dest="depth", default=4, type=int, help="the depth of crawl")
+    parse.add_argument("-t", "--threads", dest="threads", default=50, type=int, help="the num of threads")
+    parse.add_argument("-f", "--file", dest="file", type=str, help="scan multiple target")
+    parse.add_argument("--log-json", dest="log_json", type=str, help="scan whatweb 's result that --log-json format")
     args = parse.parse_args()
     url = args.url
     extion = args.extion
