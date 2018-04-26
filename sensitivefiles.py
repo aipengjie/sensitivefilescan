@@ -7,7 +7,6 @@ import urlparse
 import argparse
 import time
 import json
-from multiprocessing import Pool
 from lib.crawl import crawl
 from lib.basicinfo import _requests
 from lib.basicinfo import headers
@@ -53,13 +52,10 @@ class Scanner(object):
             if isinstance(r, bool):
                 print "{} is invaild url".format(self.target)
                 return
-            print "target is {}".format(self.target)
             self.target_domain = urlparse.urlparse(self.target).netloc
-            print "*********************   start crawling  ***********************"
             hand = crawl(self.target, self.depth, self.concurrent_num)
             crawl_urls = hand.scan()
             dirs = self.get_dir(crawl_urls)
-            print "*********************** start fuzzing *************************"
             server_result = exploit_server_path(self.target)
             backup_result = exploit_backup_path(self.target, dirs)
             directory_result = exploit_directory_path(self.target, dirs)

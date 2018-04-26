@@ -21,9 +21,9 @@ servers = {
     "apache": "php"
 }
 random_files = [
-            "public/root.rar",
+            "public/rootoot.rar",
             "1111/2222/..git/config",
-            "............................etc/passwd"
+            "............................/etc/passwd"
         ]
 USER_AGENTS = [
     "Mozilla/5.0 (Windows; U; MSIE 9.0; Windows NT 9.0; en-US)",
